@@ -1,23 +1,24 @@
 {
-  "name": "node",
+  "name": "to-do-list-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node app.js"
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "dotenv": "^16.5.0",
-    "ejs": "^3.1.10",
-    "express": "^4.21.1",
-    "express-session": "^1.18.1",
-    "openid-client": "^5.7.0"
+    "openid-client": "^5.7.1"
   },
   "devDependencies": {
-    "@types/express": "^5.0.2",
-    "@types/express-session": "^1.18.1",
-    "@types/node": "^22.15.20"
-  }
+    "@types/node": "^22.15.20",
+    "serverless": "^3.40.0",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }

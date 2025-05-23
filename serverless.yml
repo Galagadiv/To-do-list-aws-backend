@@ -1,0 +1,72 @@
+service: to-do-list-backend
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: eu-central-1
+  environment:
+    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
+    COGNITO_ISSUER_URL: ${env:COGNITO_ISSUER_URL}
+    COGNITO_REDIRECT_URI: ${env:COGNITO_REDIRECT_URI}
+    COGNITO_LOGOUT_REDIRECT_URI: ${env:COGNITO_LOGOUT_REDIRECT_URI}
+    COGNITO_DOMAIN: ${env:COGNITO_DOMAIN}
+
+functions:
+  login:
+    handler: auth/login.handler
+    events:
+      - httpApi:
+          path: /login
+          method: get
+
+  callback:
+    handler: auth/callback.handler
+    events:
+      - httpApi:
+          path: /callback
+          method: get
+
+  logout:
+    handler: auth/logout.handler
+    events:
+      - httpApi:
+          path: /logout
+          method: get
+
+  createTask:
+    handler: tasks/createTask.handler
+    events:
+      - httpApi:
+          path: /tasks
+          method: post
+
+  getTasks:
+    handler: tasks/getTasks.handler
+    events:
+      - httpApi:
+          path: /tasks
+          method: get
+
+  editTask:
+    handler: tasks/editTask.handler
+    events:
+      - httpApi:
+          path: /tasks/{id}
+          method: put
+
+  deleteTask:
+    handler: tasks/deleteTasks.handler
+    events:
+      - httpApi:
+          path: /tasks/{id}
+          method: delete
+
+plugins:
+  - serverless-dotenv-plugin
+
+package:
+  individually: true
+  excludeDevDependencies: true
