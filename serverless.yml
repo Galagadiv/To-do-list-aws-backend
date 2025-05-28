@@ -1,72 +1,45 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: galaga
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: to-do-list
 service: to-do-list-backend
-
-frameworkVersion: "3"
 
 provider:
   name: aws
   runtime: nodejs18.x
-  region: eu-central-1
+  region: us-east-1
+  stage: dev
   environment:
-    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
-    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
     COGNITO_ISSUER_URL: ${env:COGNITO_ISSUER_URL}
-    COGNITO_REDIRECT_URI: ${env:COGNITO_REDIRECT_URI}
-    COGNITO_LOGOUT_REDIRECT_URI: ${env:COGNITO_LOGOUT_REDIRECT_URI}
-    COGNITO_DOMAIN: ${env:COGNITO_DOMAIN}
+    COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    FRONTEND_URL: ${env:FRONTEND_URL}
+    REDIRECT_URI_CALLBACK: ${env:REDIRECT_URI_CALLBACK}
+    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
+
+package:
+  excludeDevDependencies: true
 
 functions:
   login:
-    handler: auth/login.handler
+    handler: functions/login.handler
     events:
-      - httpApi:
-          path: /login
+      - http:
+          path: login
           method: get
+          cors: true
 
   callback:
-    handler: auth/callback.handler
+    handler: functions/callback.handler
     events:
-      - httpApi:
-          path: /callback
+      - http:
+          path: callback
           method: get
+          cors: true
 
   logout:
-    handler: auth/logout.handler
+    handler: functions/logout.handler
     events:
-      - httpApi:
-          path: /logout
+      - http:
+          path: logout
           method: get
-
-  createTask:
-    handler: tasks/createTask.handler
-    events:
-      - httpApi:
-          path: /tasks
-          method: post
-
-  getTasks:
-    handler: tasks/getTasks.handler
-    events:
-      - httpApi:
-          path: /tasks
-          method: get
-
-  editTask:
-    handler: tasks/editTask.handler
-    events:
-      - httpApi:
-          path: /tasks/{id}
-          method: put
-
-  deleteTask:
-    handler: tasks/deleteTasks.handler
-    events:
-      - httpApi:
-          path: /tasks/{id}
-          method: delete
-
-plugins:
-  - serverless-dotenv-plugin
-
-package:
-  individually: true
-  excludeDevDependencies: true
+          cors: true

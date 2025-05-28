@@ -1,24 +1,13 @@
 {
   "name": "to-do-list-backend",
   "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
+  "main": "handler",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "deploy": "serverless deploy",
+    "deploy:fn": "serverless deploy function --function login"
   },
   "dependencies": {
-    "dotenv": "^16.5.0",
-    "openid-client": "^5.7.1"
-  },
-  "devDependencies": {
-    "@types/node": "^22.15.20",
-    "serverless": "^3.40.0",
-    "serverless-dotenv-plugin": "^6.0.0",
-    "typescript": "^5.0.0"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+    "cookie": "^0.5.0",
+    "openid-client": "^5.3.4"
+  }
 }
