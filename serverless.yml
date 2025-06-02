@@ -1,20 +1,51 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
-org: galaga
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
-app: to-do-list
 service: to-do-list-backend
+frameworkVersion: "3"
+useDotenv: true
 
 provider:
   name: aws
   runtime: nodejs18.x
   region: us-east-1
   stage: dev
+
   environment:
     COGNITO_ISSUER_URL: ${env:COGNITO_ISSUER_URL}
     COGNITO_CLIENT_ID: ${env:COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
     FRONTEND_URL: ${env:FRONTEND_URL}
     REDIRECT_URI_CALLBACK: ${env:REDIRECT_URI_CALLBACK}
-    COGNITO_CLIENT_SECRET: ${env:COGNITO_CLIENT_SECRET}
+    TASKS_TABLE: ${env:TASKS_TABLE}
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:UpdateItem
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TASKS_TABLE}
+
+plugins:
+  - serverless-dotenv-plugin
+
+resources:
+  Resources:
+    TasksTableReplica:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TASKS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: taskId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: taskId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
 
 package:
   excludeDevDependencies: true
@@ -43,3 +74,61 @@ functions:
           path: logout
           method: get
           cors: true
+
+  logoutSuccess:
+    handler: functions/logout-success.handler
+    events:
+      - http:
+          path: logout-success
+          method: get
+          cors: true
+
+  addTask:
+    handler: functions/addTask.handler
+    events:
+      - http:
+          path: addTask
+          method: post
+          cors: true
+    environment:
+      TASKS_TABLE: Tasks
+
+  updateTask:
+    handler: functions/updateTask.handler
+    events:
+      - http:
+          path: updateTask
+          method: put
+          cors: true
+    environment:
+      TASKS_TABLE: Tasks
+
+  deleteTask:
+    handler: functions/deleteTask.handler
+    events:
+      - http:
+          path: deleteTask
+          method: delete
+          cors: true
+    environment:
+      TASKS_TABLE: Tasks
+
+  getUserTasks:
+    handler: functions/getUserTasks.handler
+    events:
+      - http:
+          path: getUserTasks
+          method: get
+          cors: true
+    environment:
+      TASKS_TABLE: Tasks
+
+  getUserTaskByID:
+    handler: functions/getUserTaskByID.handler
+    events:
+      - http:
+          path: getUserTaskByID
+          method: get
+          cors: true
+    environment:
+      TASKS_TABLE: Tasks

@@ -1,4 +1,3 @@
-// functions/login.js
 const {Issuer, generators} = require("openid-client");
 
 exports.handler = async (event) => {

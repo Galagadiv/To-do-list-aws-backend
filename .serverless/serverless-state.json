@@ -12,15 +12,98 @@
       "environment": {
         "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
         "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
-        "FRONTEND_URL": "http://to-do-list-aws-lab.s3-website-us-east-1.amazonaws.com/task-list",
+        "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+        "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
         "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
-        "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp"
+        "TASKS_TABLE": "tasks-table"
       },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:PutItem",
+            "dynamodb:GetItem",
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:UpdateItem"
+          ],
+          "Resource": "arn:aws:dynamodb:us-east-1:*:table/tasks-table"
+        }
+      ],
       "versionFunctions": true,
       "compiledCloudFormationTemplate": {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "The AWS CloudFormation template for this Serverless application",
         "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
           "LoginLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
@@ -37,6 +120,42 @@
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
               "LogGroupName": "/aws/lambda/to-do-list-backend-dev-logout"
+            }
+          },
+          "LogoutSuccessLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/to-do-list-backend-dev-logoutSuccess"
+            }
+          },
+          "AddTaskLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/to-do-list-backend-dev-addTask"
+            }
+          },
+          "UpdateTaskLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/to-do-list-backend-dev-updateTask"
+            }
+          },
+          "DeleteTaskLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/to-do-list-backend-dev-deleteTask"
+            }
+          },
+          "GetUserTasksLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/to-do-list-backend-dev-getUserTasks"
+            }
+          },
+          "GetUserTaskByIDLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/to-do-list-backend-dev-getUserTaskByID"
             }
           },
           "IamRoleLambdaExecution": {
@@ -96,6 +215,9 @@
                             "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/to-do-list-backend-dev*:*:*"
                           }
                         ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][0]"
                       }
                     ]
                   }
@@ -121,8 +243,10 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
-                "S3Bucket": "serverless-framework-deployments-us-east-1-8883f4f7-ad61",
-                "S3Key": "serverless/to-do-list-backend/dev/1748472654011-2025-05-28T22:50:54.011Z/to-do-list-backend.zip"
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
               },
               "Handler": "functions/login.handler",
               "Runtime": "nodejs18.x",
@@ -133,9 +257,10 @@
                 "Variables": {
                   "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
                   "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
-                  "FRONTEND_URL": "http://to-do-list-aws-lab.s3-website-us-east-1.amazonaws.com/task-list",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
                   "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
-                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp"
+                  "TASKS_TABLE": "tasks-table"
                 }
               },
               "Role": {
@@ -153,8 +278,10 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
-                "S3Bucket": "serverless-framework-deployments-us-east-1-8883f4f7-ad61",
-                "S3Key": "serverless/to-do-list-backend/dev/1748472654011-2025-05-28T22:50:54.011Z/to-do-list-backend.zip"
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
               },
               "Handler": "functions/callback.handler",
               "Runtime": "nodejs18.x",
@@ -165,9 +292,10 @@
                 "Variables": {
                   "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
                   "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
-                  "FRONTEND_URL": "http://to-do-list-aws-lab.s3-website-us-east-1.amazonaws.com/task-list",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
                   "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
-                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp"
+                  "TASKS_TABLE": "tasks-table"
                 }
               },
               "Role": {
@@ -185,8 +313,10 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
-                "S3Bucket": "serverless-framework-deployments-us-east-1-8883f4f7-ad61",
-                "S3Key": "serverless/to-do-list-backend/dev/1748472654011-2025-05-28T22:50:54.011Z/to-do-list-backend.zip"
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
               },
               "Handler": "functions/logout.handler",
               "Runtime": "nodejs18.x",
@@ -197,9 +327,10 @@
                 "Variables": {
                   "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
                   "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
-                  "FRONTEND_URL": "http://to-do-list-aws-lab.s3-website-us-east-1.amazonaws.com/task-list",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
                   "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
-                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp"
+                  "TASKS_TABLE": "tasks-table"
                 }
               },
               "Role": {
@@ -213,34 +344,304 @@
               "LogoutLogGroup"
             ]
           },
-          "LoginLambdaVersionqYUXb3YBgSx2zprILHc05Um5dID6zKfY3IcqOdGSavw": {
+          "LogoutSuccessLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
+              },
+              "Handler": "functions/logout-success.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "to-do-list-backend-dev-logoutSuccess",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
+                  "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
+                  "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
+                  "TASKS_TABLE": "tasks-table"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "LogoutSuccessLogGroup"
+            ]
+          },
+          "AddTaskLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
+              },
+              "Handler": "functions/addTask.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "to-do-list-backend-dev-addTask",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
+                  "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
+                  "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
+                  "TASKS_TABLE": "Tasks"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "AddTaskLogGroup"
+            ]
+          },
+          "UpdateTaskLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
+              },
+              "Handler": "functions/updateTask.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "to-do-list-backend-dev-updateTask",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
+                  "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
+                  "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
+                  "TASKS_TABLE": "Tasks"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "UpdateTaskLogGroup"
+            ]
+          },
+          "DeleteTaskLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
+              },
+              "Handler": "functions/deleteTask.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "to-do-list-backend-dev-deleteTask",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
+                  "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
+                  "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
+                  "TASKS_TABLE": "Tasks"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "DeleteTaskLogGroup"
+            ]
+          },
+          "GetUserTasksLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
+              },
+              "Handler": "functions/getUserTasks.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "to-do-list-backend-dev-getUserTasks",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
+                  "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
+                  "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
+                  "TASKS_TABLE": "Tasks"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetUserTasksLogGroup"
+            ]
+          },
+          "GetUserTaskByIDLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z/to-do-list-backend.zip"
+              },
+              "Handler": "functions/getUserTaskByID.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "to-do-list-backend-dev-getUserTaskByID",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "COGNITO_ISSUER_URL": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_atOGhHEJc",
+                  "COGNITO_CLIENT_ID": "16jtunov7n5jlg34414vi7p84u",
+                  "COGNITO_CLIENT_SECRET": "rnb5pm73aha7rp0oh5rhhmu9f7v9a8jtakf7p7fouk46vb881hp",
+                  "FRONTEND_URL": "https://dev.d167hqm8nci579.amplifyapp.com",
+                  "REDIRECT_URI_CALLBACK": "https://ubu9jz8e3f.execute-api.us-east-1.amazonaws.com/dev/callback",
+                  "TASKS_TABLE": "Tasks"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetUserTaskByIDLogGroup"
+            ]
+          },
+          "LoginLambdaVersionrhDrrGmAIBbMirMVays8kAbA6NsFIi7pzk32YbBlPg": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LoginLambdaFunction"
               },
-              "CodeSha256": "bR09o3Vy3FxX315EFjCkf60ckotakhKS1YdRjJnj0dw="
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
             }
           },
-          "CallbackLambdaVersionGhb7uPfD6KQZXEmZFNtKWJlSCh3xOO2aWut8isHwqc": {
+          "CallbackLambdaVersionyZfTT1P5VSdMflD4jSZPXbKfjQQdpA4pNEG5fIUvENE": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "CallbackLambdaFunction"
               },
-              "CodeSha256": "bR09o3Vy3FxX315EFjCkf60ckotakhKS1YdRjJnj0dw="
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
             }
           },
-          "LogoutLambdaVersionJBpepbDrfwxXu18psZvjU8fRzIAqIbnTdaMwnmMf1lc": {
+          "LogoutLambdaVersioniIAfexHkjDivOOHiaSBGqjFfW3dypEaKac6x5pZs": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LogoutLambdaFunction"
               },
-              "CodeSha256": "bR09o3Vy3FxX315EFjCkf60ckotakhKS1YdRjJnj0dw="
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
+            }
+          },
+          "LogoutSuccessLambdaVersion5o0ko9ieUEpGrdlkRZEkIdZM48defvUSElBL4gwEKtA": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "LogoutSuccessLambdaFunction"
+              },
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
+            }
+          },
+          "AddTaskLambdaVersion1JdZk44i709t0RJWBrPrnZlwHNGno2hHBmwEM2WM": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "AddTaskLambdaFunction"
+              },
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
+            }
+          },
+          "UpdateTaskLambdaVersionMilPtDHAKzqlo2bFNxz4bf9oHhdFmZOYXFI0Va87Cbw": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "UpdateTaskLambdaFunction"
+              },
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
+            }
+          },
+          "DeleteTaskLambdaVersionKZLUpbihsmqh2BPwVMJdIOreKRfCZA9iKYeTklely7g": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "DeleteTaskLambdaFunction"
+              },
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
+            }
+          },
+          "GetUserTasksLambdaVersionFDy6iTaNntRBr5XRBWfMx8d2vE4jyAtQI5mcQv8": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetUserTasksLambdaFunction"
+              },
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
+            }
+          },
+          "GetUserTaskByIDLambdaVersionc2zkCpClTkyYBF0MtyfHpoXu6SC6ymzzY5NughbMWMs": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetUserTaskByIDLambdaFunction"
+              },
+              "CodeSha256": "Z1j4IBNPo4heGKAh2Uq3LXc+m8/87gvXGTahERw5Jec="
             }
           },
           "ApiGatewayRestApi": {
@@ -295,6 +696,96 @@
                 ]
               },
               "PathPart": "logout",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceLogoutDashsuccess": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "logout-success",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAddtask": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "addTask",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceUpdatetask": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "updateTask",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceDeletetask": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "deleteTask",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceGetusertasks": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "getUserTasks",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceGetusertaskbyid": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "getUserTaskByID",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
@@ -429,6 +920,276 @@
               },
               "ResourceId": {
                 "Ref": "ApiGatewayResourceLogout"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodLogoutDashsuccessOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceLogoutDashsuccess"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAddtaskOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAddtask"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodUpdatetaskOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,PUT'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceUpdatetask"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodDeletetaskOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,DELETE'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDeletetask"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodGetusertasksOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceGetusertasks"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodGetusertaskbyidOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceGetusertaskbyid"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
@@ -573,7 +1334,283 @@
               "LogoutLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1748472645114": {
+          "ApiGatewayMethodLogoutDashsuccessGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceLogoutDashsuccess"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "LogoutSuccessLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "LogoutSuccessLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAddtaskPost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAddtask"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "AddTaskLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "AddTaskLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodUpdatetaskPut": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "PUT",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceUpdatetask"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "UpdateTaskLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "UpdateTaskLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodDeletetaskDelete": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "DELETE",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDeletetask"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "DeleteTaskLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "DeleteTaskLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodGetusertasksGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceGetusertasks"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetUserTasksLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GetUserTasksLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodGetusertaskbyidGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceGetusertaskbyid"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetUserTaskByIDLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GetUserTaskByIDLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayDeployment1748900400663": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -585,9 +1622,21 @@
               "ApiGatewayMethodLoginOptions",
               "ApiGatewayMethodCallbackOptions",
               "ApiGatewayMethodLogoutOptions",
+              "ApiGatewayMethodLogoutDashsuccessOptions",
+              "ApiGatewayMethodAddtaskOptions",
+              "ApiGatewayMethodUpdatetaskOptions",
+              "ApiGatewayMethodDeletetaskOptions",
+              "ApiGatewayMethodGetusertasksOptions",
+              "ApiGatewayMethodGetusertaskbyidOptions",
               "ApiGatewayMethodLoginGet",
               "ApiGatewayMethodCallbackGet",
-              "ApiGatewayMethodLogoutGet"
+              "ApiGatewayMethodLogoutGet",
+              "ApiGatewayMethodLogoutDashsuccessGet",
+              "ApiGatewayMethodAddtaskPost",
+              "ApiGatewayMethodUpdatetaskPut",
+              "ApiGatewayMethodDeletetaskDelete",
+              "ApiGatewayMethodGetusertasksGet",
+              "ApiGatewayMethodGetusertaskbyidGet"
             ]
           },
           "LoginLambdaPermissionApiGateway": {
@@ -700,11 +1749,262 @@
                 ]
               }
             }
+          },
+          "LogoutSuccessLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "LogoutSuccessLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "AddTaskLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "AddTaskLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "UpdateTaskLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "UpdateTaskLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "DeleteTaskLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "DeleteTaskLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetUserTasksLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetUserTasksLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetUserTaskByIDLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetUserTaskByIDLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "TasksTableReplica": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "tasks-table",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "taskId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "userId",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "taskId",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
           }
         },
         "Outputs": {
           "ServerlessDeploymentBucketName": {
-            "Value": "serverless-framework-deployments-us-east-1-8883f4f7-ad61",
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            },
             "Export": {
               "Name": "sls-to-do-list-backend-dev-ServerlessDeploymentBucketName"
             }
@@ -712,7 +2012,7 @@
           "LoginLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LoginLambdaVersionqYUXb3YBgSx2zprILHc05Um5dID6zKfY3IcqOdGSavw"
+              "Ref": "LoginLambdaVersionrhDrrGmAIBbMirMVays8kAbA6NsFIi7pzk32YbBlPg"
             },
             "Export": {
               "Name": "sls-to-do-list-backend-dev-LoginLambdaFunctionQualifiedArn"
@@ -721,7 +2021,7 @@
           "CallbackLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "CallbackLambdaVersionGhb7uPfD6KQZXEmZFNtKWJlSCh3xOO2aWut8isHwqc"
+              "Ref": "CallbackLambdaVersionyZfTT1P5VSdMflD4jSZPXbKfjQQdpA4pNEG5fIUvENE"
             },
             "Export": {
               "Name": "sls-to-do-list-backend-dev-CallbackLambdaFunctionQualifiedArn"
@@ -730,10 +2030,64 @@
           "LogoutLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LogoutLambdaVersionJBpepbDrfwxXu18psZvjU8fRzIAqIbnTdaMwnmMf1lc"
+              "Ref": "LogoutLambdaVersioniIAfexHkjDivOOHiaSBGqjFfW3dypEaKac6x5pZs"
             },
             "Export": {
               "Name": "sls-to-do-list-backend-dev-LogoutLambdaFunctionQualifiedArn"
+            }
+          },
+          "LogoutSuccessLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "LogoutSuccessLambdaVersion5o0ko9ieUEpGrdlkRZEkIdZM48defvUSElBL4gwEKtA"
+            },
+            "Export": {
+              "Name": "sls-to-do-list-backend-dev-LogoutSuccessLambdaFunctionQualifiedArn"
+            }
+          },
+          "AddTaskLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "AddTaskLambdaVersion1JdZk44i709t0RJWBrPrnZlwHNGno2hHBmwEM2WM"
+            },
+            "Export": {
+              "Name": "sls-to-do-list-backend-dev-AddTaskLambdaFunctionQualifiedArn"
+            }
+          },
+          "UpdateTaskLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "UpdateTaskLambdaVersionMilPtDHAKzqlo2bFNxz4bf9oHhdFmZOYXFI0Va87Cbw"
+            },
+            "Export": {
+              "Name": "sls-to-do-list-backend-dev-UpdateTaskLambdaFunctionQualifiedArn"
+            }
+          },
+          "DeleteTaskLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "DeleteTaskLambdaVersionKZLUpbihsmqh2BPwVMJdIOreKRfCZA9iKYeTklely7g"
+            },
+            "Export": {
+              "Name": "sls-to-do-list-backend-dev-DeleteTaskLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetUserTasksLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetUserTasksLambdaVersionFDy6iTaNntRBr5XRBWfMx8d2vE4jyAtQI5mcQv8"
+            },
+            "Export": {
+              "Name": "sls-to-do-list-backend-dev-GetUserTasksLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetUserTaskByIDLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetUserTaskByIDLambdaVersionc2zkCpClTkyYBF0MtyfHpoXu6SC6ymzzY5NughbMWMs"
+            },
+            "Export": {
+              "Name": "sls-to-do-list-backend-dev-GetUserTaskByIDLambdaFunctionQualifiedArn"
             }
           },
           "ServiceEndpoint": {
@@ -764,8 +2118,93 @@
           }
         }
       },
+      "coreCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            }
+          }
+        }
+      },
       "vpc": {}
     },
+    "plugins": [
+      "serverless-dotenv-plugin"
+    ],
     "pluginsData": {},
     "functions": {
       "login": {
@@ -802,7 +2241,7 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LoginLambdaVersionqYUXb3YBgSx2zprILHc05Um5dID6zKfY3IcqOdGSavw"
+        "versionLogicalId": "LoginLambdaVersionrhDrrGmAIBbMirMVays8kAbA6NsFIi7pzk32YbBlPg"
       },
       "callback": {
         "handler": "functions/callback.handler",
@@ -838,7 +2277,7 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "CallbackLambdaVersionGhb7uPfD6KQZXEmZFNtKWJlSCh3xOO2aWut8isHwqc"
+        "versionLogicalId": "CallbackLambdaVersionyZfTT1P5VSdMflD4jSZPXbKfjQQdpA4pNEG5fIUvENE"
       },
       "logout": {
         "handler": "functions/logout.handler",
@@ -874,38 +2313,303 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LogoutLambdaVersionJBpepbDrfwxXu18psZvjU8fRzIAqIbnTdaMwnmMf1lc"
+        "versionLogicalId": "LogoutLambdaVersioniIAfexHkjDivOOHiaSBGqjFfW3dypEaKac6x5pZs"
+      },
+      "logoutSuccess": {
+        "handler": "functions/logout-success.handler",
+        "events": [
+          {
+            "http": {
+              "path": "logout-success",
+              "method": "get",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "to-do-list-backend-dev-logoutSuccess",
+        "package": {},
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "LogoutSuccessLambdaVersion5o0ko9ieUEpGrdlkRZEkIdZM48defvUSElBL4gwEKtA"
+      },
+      "addTask": {
+        "handler": "functions/addTask.handler",
+        "events": [
+          {
+            "http": {
+              "path": "addTask",
+              "method": "post",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "environment": {
+          "TASKS_TABLE": "Tasks"
+        },
+        "name": "to-do-list-backend-dev-addTask",
+        "package": {},
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "AddTaskLambdaVersion1JdZk44i709t0RJWBrPrnZlwHNGno2hHBmwEM2WM"
+      },
+      "updateTask": {
+        "handler": "functions/updateTask.handler",
+        "events": [
+          {
+            "http": {
+              "path": "updateTask",
+              "method": "put",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "PUT"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "environment": {
+          "TASKS_TABLE": "Tasks"
+        },
+        "name": "to-do-list-backend-dev-updateTask",
+        "package": {},
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "UpdateTaskLambdaVersionMilPtDHAKzqlo2bFNxz4bf9oHhdFmZOYXFI0Va87Cbw"
+      },
+      "deleteTask": {
+        "handler": "functions/deleteTask.handler",
+        "events": [
+          {
+            "http": {
+              "path": "deleteTask",
+              "method": "delete",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "DELETE"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "environment": {
+          "TASKS_TABLE": "Tasks"
+        },
+        "name": "to-do-list-backend-dev-deleteTask",
+        "package": {},
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "DeleteTaskLambdaVersionKZLUpbihsmqh2BPwVMJdIOreKRfCZA9iKYeTklely7g"
+      },
+      "getUserTasks": {
+        "handler": "functions/getUserTasks.handler",
+        "events": [
+          {
+            "http": {
+              "path": "getUserTasks",
+              "method": "get",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "environment": {
+          "TASKS_TABLE": "Tasks"
+        },
+        "name": "to-do-list-backend-dev-getUserTasks",
+        "package": {},
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GetUserTasksLambdaVersionFDy6iTaNntRBr5XRBWfMx8d2vE4jyAtQI5mcQv8"
+      },
+      "getUserTaskByID": {
+        "handler": "functions/getUserTaskByID.handler",
+        "events": [
+          {
+            "http": {
+              "path": "getUserTaskByID",
+              "method": "get",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "environment": {
+          "TASKS_TABLE": "Tasks"
+        },
+        "name": "to-do-list-backend-dev-getUserTaskByID",
+        "package": {},
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GetUserTaskByIDLambdaVersionc2zkCpClTkyYBF0MtyfHpoXu6SC6ymzzY5NughbMWMs"
       }
     },
+    "resources": {
+      "Resources": {
+        "TasksTableReplica": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "tasks-table",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "userId",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "taskId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "userId",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "taskId",
+                "KeyType": "RANGE"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST"
+          }
+        }
+      },
+      "Outputs": {}
+    },
     "configValidationMode": "warn",
-    "serviceFilename": "serverless",
+    "serviceFilename": "serverless.yml",
     "initialServerlessConfig": {
-      "org": "galaga",
-      "app": "to-do-list",
       "service": "to-do-list-backend",
+      "frameworkVersion": "3",
+      "useDotenv": true,
       "provider": {
         "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "plugins": {
+        "$ref": "$[\"service\"][\"plugins\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
       },
       "package": {
         "excludeDevDependencies": true,
         "artifactsS3KeyDirname": "serverless/to-do-list-backend/dev/code-artifacts",
-        "deploymentBucket": "serverless-framework-deployments-us-east-1-8883f4f7-ad61",
         "artifact": "C:\\GitMain\\To-do-list-aws-backend\\.serverless\\to-do-list-backend.zip",
-        "artifactDirectoryName": "serverless/to-do-list-backend/dev/1748472654011-2025-05-28T22:50:54.011Z"
+        "artifactDirectoryName": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z"
       },
       "functions": {
         "$ref": "$[\"service\"][\"functions\"]"
       }
     },
-    "app": "to-do-list",
-    "appId": null,
-    "org": "galaga",
-    "orgId": null,
     "layers": {},
+    "isDashboardMonitoringPreconfigured": false,
     "artifact": "C:\\GitMain\\To-do-list-aws-backend\\.serverless\\to-do-list-backend.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/to-do-list-backend/dev/1748472654011-2025-05-28T22:50:54.011Z",
+    "artifactDirectoryName": "serverless/to-do-list-backend/dev/1748900414611-2025-06-02T21:40:14.611Z",
     "artifact": "to-do-list-backend.zip"
   }
 }
