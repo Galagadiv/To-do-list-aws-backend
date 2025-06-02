@@ -1,0 +1,20 @@
+{
+  "name": "to-do-list-backend",
+  "version": "1.0.0",
+  "main": "handler",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "deploy:fn": "serverless deploy function --function login"
+  },
+  "dependencies": {
+    "cookie": "^0.5.0",
+    "jwt-decode": "^4.0.0",
+    "openid-client": "^5.3.4",
+    "uuid": "^11.1.0",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  },
+  "devDependencies": {
+    "serverless-dotenv-plugin": "^6.0.0"
+  }
+}
